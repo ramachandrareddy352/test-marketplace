@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Row, Col, Card, Spinner } from "react-bootstrap";
 import toast, { Toaster } from "react-hot-toast";
 import { FcLike } from "react-icons/fc";
@@ -13,42 +12,47 @@ const Home = ({ network, account, marketplace }) => {
   const [loading, setLoading] = useState(true);
 
   const loadMarketplaceItems = async () => {
-    let soldeditems = [];
-    let unsoldeditems = [];
-    setLoading(true);
-    const itemCount = await marketplace._tokenIds();
-    console.log(itemCount);
+    try {
+      setLoading(true);
+      const soldeditems = [];
+      const unsoldeditems = [];
+      const itemCount = await marketplace._tokenIds();
 
-    for (let i = 1; i <= itemCount; i++) {
-      const item = await marketplace.idToMarketItem(i);
-      const uri = await marketplace.tokenURI(item.tokenId);
-      const response = await fetch(uri);
-      const metadata = await response.json();
-      const userLiked = await marketplace.tokenLikes(item.tokenId, account);
+      for (let i = 1; i <= itemCount; i++) {
+        const item = await marketplace.idToMarketItem(i);
+        const uri = await marketplace.tokenURI(item.tokenId);
+        const response = await fetch(uri);
+        const metadata = await response.json();
+        const userLiked = await marketplace.tokenLikes(item.tokenId, account);
 
-      const marketItem = {
-        price: item.price ? item.price.toString() : "0",
-        itemId: item.tokenId ? item.tokenId.toString() : "0",
-        name: metadata.Name,
-        description: metadata.Description,
-        image: metadata.Image,
-        likes: item.likes ? item.likes.toString() : "0",
-        seller: item.seller,
-        owner: item.owner,
-        userLiked: userLiked,
-      };
+        const marketItem = {
+          price: item.price ? item.price.toString() : "0",
+          itemId: item.tokenId ? item.tokenId.toString() : "0",
+          name: metadata.Name,
+          description: metadata.Description,
+          image: metadata.Image,
+          likes: item.likes ? item.likes.toString() : "0",
+          seller: item.seller,
+          owner: item.owner,
+          userLiked: userLiked,
+        };
 
-      if (item.sold) {
-        soldeditems.push(marketItem);
-      } else {
-        unsoldeditems.push(marketItem);
+        if (item.sold) {
+          soldeditems.push(marketItem);
+        } else {
+          unsoldeditems.push(marketItem);
+        }
       }
 
       setUnSoldedItems(unsoldeditems);
       setSoldedItems(soldeditems);
       setLoading(false);
-      console.log(soldedItems);
-      console.log(unsoldeditems);
+    } catch (error) {
+      console.error("Error loading marketplace items:", error);
+      toast.error("Failed to load marketplace items", {
+        position: "top-center",
+      });
+      setLoading(false);
     }
   };
 
@@ -114,39 +118,34 @@ const Home = ({ network, account, marketplace }) => {
   };
 
   useEffect(() => {
-    async function fetchData() {
+    const handleAccountChange = async () => {
       await loadMarketplaceItems();
+    };
+
+    const handleNetworkChange = async () => {
+      await loadMarketplaceItems();
+    };
+
+    const ethereum = window.ethereum;
+    if (ethereum) {
+      ethereum.on("accountsChanged", handleAccountChange);
+      ethereum.on("chainChanged", handleNetworkChange);
     }
-    fetchData();
-  }, [network, account]);
+
+    loadMarketplaceItems();
+
+    // Cleanup event listeners on unmount
+    return () => {
+      if (ethereum) {
+        ethereum.removeListener("accountsChanged", handleAccountChange);
+        ethereum.removeListener("chainChanged", handleNetworkChange);
+      }
+    };
+  }, [marketplace, account, network]);
 
   return (
     <div className="container">
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        gutter={8}
-        containerClassName=""
-        containerStyle={{}}
-        toastOptions={{
-          // Define default options
-          className: "",
-          duration: 4000,
-          style: {
-            background: "#363636",
-            color: "#fff",
-          },
-
-          // Default options for specific types
-          success: {
-            duration: 4000,
-            theme: {
-              primary: "green",
-              secondary: "black",
-            },
-          },
-        }}
-      />
+      <Toaster position="top-center" reverseOrder={false} />
       <div className="flex justify-center">
         <div className=" my-5 container">
           <h2>UnSolded Items</h2>
@@ -187,10 +186,7 @@ const Home = ({ network, account, marketplace }) => {
                             </button>
                             <button
                               className="btn d-flex flex-column align-items-center p-2"
-                              style={{
-                                gap: "0", // No gap between elements
-                                width: "4rem",
-                              }}
+                              style={{ gap: "0", width: "4rem" }}
                               onClick={() => likeTheNFT(item)}
                             >
                               {item.userLiked ? (
@@ -208,41 +204,16 @@ const Home = ({ network, account, marketplace }) => {
                   ))}
                 </Row>
               ) : (
-                <div
-                  className="overflow-hidden"
-                  style={{
-                    width: "18rem",
-                    height: "22rem",
-                    boxShadow: "15px 15px 6px silver",
-                    border: "1px dashed black",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <h3 style={{ textAlign: "center", marginTop: "150px" }}>
-                    NULL
-                  </h3>
-                </div>
+                <h3 style={{ textAlign: "center", marginTop: "150px" }}>
+                  No Unsold Items
+                </h3>
               )}
             </div>
           ) : (
-            <div
-              style={{
-                textAlign: "center",
-                width: "18rem",
-                height: "22rem",
-                boxShadow: "15px 15px 6px silver",
-                border: "1px dashed black",
-                borderRadius: "10px",
-              }}
-            >
-              <div style={{ marginTop: "45%" }}>
-                <Spinner animation="border" />
-                <p className="mx-3 my-0">Loading Data...</p>
-              </div>
-            </div>
+            <Spinner animation="border" />
           )}
         </div>
-
+        {/* Sold Items Section */}
         <div className=" my-5 container">
           <h2>Solded Items</h2>
           {!loading ? (
@@ -260,7 +231,10 @@ const Home = ({ network, account, marketplace }) => {
                       >
                         <Card.Img variant="top" src={item.image} height={200} />
                         <Card.Body color="secondary">
-                          <Card.Title>{item.name}</Card.Title>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <Card.Title>{item.name}</Card.Title>
+                            <h4>#{item.itemId}</h4>
+                          </div>
                           <Card.Text
                             style={{ height: "50px", overflow: "hidden" }}
                           >
@@ -269,19 +243,13 @@ const Home = ({ network, account, marketplace }) => {
                         </Card.Body>
                         <Card.Footer>
                           <div className="my-2 d-flex">
-                            <p
-                              className="my-4 mx-2 "
-                              style={{ width: "10.5rem" }}
-                            >
+                            <h5 className="mt-3">
                               Solded at{" "}
                               <b>{ethers.utils.formatEther(item.price)} ETH</b>
-                            </p>
+                            </h5>
                             <button
                               className="btn d-flex flex-column align-items-center p-2"
-                              style={{
-                                gap: "0", // No gap between elements
-                                width: "4rem",
-                              }}
+                              style={{ gap: "0", width: "4rem" }}
                               onClick={() => likeTheNFT(item)}
                             >
                               {item.userLiked ? (
@@ -299,42 +267,18 @@ const Home = ({ network, account, marketplace }) => {
                   ))}
                 </Row>
               ) : (
-                <div
-                  className="overflow-hidden"
-                  style={{
-                    width: "18rem",
-                    height: "22rem",
-                    boxShadow: "15px 15px 6px silver",
-                    border: "1px dashed black",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <h3 style={{ textAlign: "center", marginTop: "150px" }}>
-                    NULL
-                  </h3>
-                </div>
+                <h3 style={{ textAlign: "center", marginTop: "150px" }}>
+                  No Unsold Items
+                </h3>
               )}
             </div>
           ) : (
-            <div
-              style={{
-                textAlign: "center",
-                width: "18rem",
-                height: "22rem",
-                boxShadow: "15px 15px 6px silver",
-                border: "1px dashed black",
-                borderRadius: "10px",
-              }}
-            >
-              <div style={{ marginTop: "45%" }}>
-                <Spinner animation="border" />
-                <p className="mx-3 my-0">Loading Data...</p>
-              </div>
-            </div>
+            <Spinner animation="border" />
           )}
         </div>
       </div>
     </div>
   );
 };
+
 export default Home;

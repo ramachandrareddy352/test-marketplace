@@ -411,13 +411,23 @@ const CreateNFT = ({ network, account, marketplace }) => {
                 >
                   Edit
                 </button>
-                <button
-                  type="button"
-                  onClick={createNFT}
-                  className="btn btn-primary mx-5"
-                >
-                  Mint NFT
-                </button>
+                {loading ? (
+                  <button
+                    type="button"
+                    onClick={createNFT}
+                    className="btn btn-primary mx-5"
+                  >
+                    Minting <Spinner />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={createNFT}
+                    className="btn btn-primary mx-5"
+                  >
+                    Mint NFT
+                  </button>
+                )}
               </div>
             </div>
           </div>
