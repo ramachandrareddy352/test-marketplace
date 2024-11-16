@@ -109,7 +109,7 @@ function App() {
         }
       });
     };
-  }, [window.ethereum]);
+  }, []);
 
   return (
     <div className="App">
