@@ -47,6 +47,8 @@ const Home = ({ network, account, marketplace }) => {
       setUnSoldedItems(unsoldeditems);
       setSoldedItems(soldeditems);
       setLoading(false);
+      console.log(soldedItems);
+      console.log(unsoldeditems);
     }
   };
 
